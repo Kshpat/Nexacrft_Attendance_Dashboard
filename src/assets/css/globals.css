@@ -134,3 +134,166 @@ body {
   background-color: var(--bg-color);
   border-radius: 50%;
 }
+
+/* Responsive Layout Classes */
+.page-container {
+  padding: 40px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.page-container-wide {
+  padding: 40px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  gap: 16px;
+}
+
+.tabs-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding-bottom: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs-row button {
+  flex-shrink: 0;
+}
+
+.form-row-2col {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row-2col > div {
+  flex: 1;
+}
+
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 16px;
+}
+
+.neo-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.neo-modal-content {
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.neo-modal-content-narrow {
+  width: 100%;
+  max-width: 350px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.report-chart-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Media Queries for Mobile Responsiveness */
+@media (max-width: 768px) {
+  .page-container,
+  .page-container-wide {
+    padding: 20px 16px;
+  }
+
+  .header-row {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .header-row h2 {
+    font-size: 24px;
+  }
+
+  .form-row-2col {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .auth-card {
+    padding: 24px 16px;
+  }
+  
+  .neo-raised {
+    padding: 16px !important;
+  }
+
+  .report-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .report-header h2 {
+    font-size: 20px;
+  }
+
+  .report-chart-section {
+    gap: 20px;
+  }
+}
+

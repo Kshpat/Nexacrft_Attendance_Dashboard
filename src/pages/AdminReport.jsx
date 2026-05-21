@@ -145,7 +145,7 @@ const AdminReport = () => {
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading report...</div>;
 
   return (
-    <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <Link to="/admin/dashboard" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
           &larr; Back to Dashboard
@@ -166,7 +166,7 @@ const AdminReport = () => {
       </div>
 
       <div className="neo-raised" id="report-container" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <div className="report-header">
           <h2>Monthly Report - {employeeName}</h2>
           <div style={{ display: 'flex', gap: '8px' }}>
             <select className="neo-input" style={{ margin: 0 }} value={month} onChange={e => setMonth(Number(e.target.value))}>
@@ -191,7 +191,7 @@ const AdminReport = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="report-chart-section">
           <div id="attendance-chart" style={{ width: '300px', height: '300px' }}>
               <Doughnut data={processChartData()} options={chartOptions} />
           </div>

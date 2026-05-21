@@ -171,7 +171,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="page-container-wide">
       {notification && (
         <NotificationToast 
           message={notification.message} 
@@ -180,7 +180,7 @@ const AdminDashboard = () => {
         />
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+      <div className="header-row">
         <h2>Admin Dashboard</h2>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button onClick={() => setShowMissingModal(true)} className="neo-button-primary">Add Missing Entry</button>
@@ -189,7 +189,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Navigation Menu */}
-      <div style={{ display: 'flex', gap: '24px', marginBottom: '32px', borderBottom: '1px solid var(--card-border)', paddingBottom: '12px' }}>
+      <div className="tabs-row">
         <button 
           onClick={() => setActiveTab('attendance')} 
           style={{ 
@@ -227,7 +227,8 @@ const AdminDashboard = () => {
         </div>
         
         {activeTab === 'attendance' ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <div className="table-responsive-wrapper">
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--card-border)', color: 'var(--text-secondary)' }}>
                 <th style={{ padding: '12px' }}>Employee</th>
@@ -279,8 +280,10 @@ const AdminDashboard = () => {
               )}
             </tbody>
           </table>
+          </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <div className="table-responsive-wrapper">
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--card-border)', color: 'var(--text-secondary)' }}>
                 <th style={{ padding: '12px' }}>Name</th>
@@ -316,12 +319,13 @@ const AdminDashboard = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
       {showMissingModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
-          <div className="neo-raised" style={{ width: '400px', padding: '24px' }}>
+        <div className="neo-modal-backdrop" style={{ zIndex: 2000 }}>
+          <div className="neo-raised neo-modal-content">
             <h3 style={{ marginBottom: '20px' }}>Add Missing Entry</h3>
             <form onSubmit={handleAddMissingEntry}>
               <select className="neo-input" value={selectedEmp} onChange={e => setSelectedEmp(e.target.value)} required>
@@ -342,8 +346,8 @@ const AdminDashboard = () => {
         </div>
       )}
       {confirmDeleteId && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 }}>
-          <div className="neo-raised" style={{ width: '350px', padding: '24px', textAlign: 'center' }}>
+        <div className="neo-modal-backdrop" style={{ zIndex: 3000 }}>
+          <div className="neo-raised neo-modal-content-narrow" style={{ textAlign: 'center' }}>
             <h3 style={{ marginBottom: '16px' }}>Confirm Removal</h3>
             <p style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}>Are you sure you want to permanently remove this employee? This cannot be undone.</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
@@ -354,8 +358,8 @@ const AdminDashboard = () => {
         </div>
       )}
       {confirmAbsentId && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 }}>
-          <div className="neo-raised" style={{ width: '350px', padding: '24px', textAlign: 'center' }}>
+        <div className="neo-modal-backdrop" style={{ zIndex: 3000 }}>
+          <div className="neo-raised neo-modal-content-narrow" style={{ textAlign: 'center' }}>
             <h3 style={{ marginBottom: '16px' }}>Mark as Absent</h3>
             <p style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}>Are you sure you want to mark this employee as absent for today? This will clear today's Clock IN/OUT times.</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>

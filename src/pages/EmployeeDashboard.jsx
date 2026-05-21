@@ -132,10 +132,10 @@ const EmployeeDashboard = () => {
   const canSelectOut = attendanceRecord && attendanceRecord.time_in && !attendanceRecord.time_out;
 
   return (
-    <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="page-container">
       {toastMessage && <NotificationToast message={toastMessage} type="success" onClose={() => setToastMessage('')} />}
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+      <div className="header-row">
         <h2>Hey, {userName}</h2>
         <button onClick={handleLogout} className="neo-button" style={{ backgroundColor: 'transparent', border: '1px solid var(--text-secondary)' }}>Logout</button>
       </div>
@@ -155,7 +155,7 @@ const EmployeeDashboard = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '16px' }}>
+          <div className="form-row-2col">
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Time IN</label>
               <select 

@@ -40,8 +40,8 @@ const Login = () => {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}>
-      <div className="neo-raised" style={{ width: '100%', maxWidth: '400px', padding: '40px', textAlign: 'center' }}>
+    <div className="auth-container">
+      <div className="neo-raised auth-card">
         <h2 style={{ marginBottom: '24px' }}>Welcome to Nexacrft</h2>
         {error && <div style={{ color: 'var(--danger-color)', marginBottom: '16px' }}>{error}</div>}
         <form onSubmit={handleLogin}>
