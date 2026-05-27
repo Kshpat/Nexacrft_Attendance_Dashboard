@@ -46,16 +46,6 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const generateTimeOptions = () => {
-    const options = [];
-    for (let i = 0; i < 24; i++) {
-      const hour = i.toString().padStart(2, '0');
-      options.push(`${hour}:00`);
-      options.push(`${hour}:30`);
-    }
-    return options;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!session) return;
@@ -67,49 +57,52 @@ const EmployeeDashboard = () => {
       return;
     }
 
-    // Rule 2: Time Out > Time In
-    if (attendanceRecord && attendanceRecord.time_in && timeOut) {
-      if (timeOut <= attendanceRecord.time_in) {
-        alert("Time OUT must be later than Time IN.");
-        return;
-      }
-    }
+    const now = new Date();
+    const formattedTime = now.toTimeString().split(' ')[0].substring(0, 5); // e.g. "14:35"
 
     try {
-      const isUpdatingOut = attendanceRecord && attendanceRecord.time_in && !attendanceRecord.time_out && timeOut;
-      const isInsertingIn = !attendanceRecord && timeIn;
+      const isInsertingIn = !attendanceRecord;
+      const isUpdatingOut = attendanceRecord && attendanceRecord.time_in && !attendanceRecord.time_out;
 
       if (isInsertingIn) {
         const { data, error } = await supabase.from('attendance').insert({
           user_id: session.user.id,
           date: date,
-          time_in: timeIn,
+          time_in: formattedTime,
           status: 'partial'
         }).select().single();
         
         if (error) throw error;
         setAttendanceRecord(data);
+        setTimeIn(formattedTime);
         
         // Notify admins
         await supabase.from('notifications').insert({
           type: 'clock_in',
-          payload: { user_name: userName, time: timeIn, date: date }
+          payload: { user_name: userName, time: formattedTime, date: date }
         });
 
         setToastMessage('Time IN marked successfully!');
       } else if (isUpdatingOut) {
+        // Rule 2: Time Out > Time In
+        if (formattedTime <= attendanceRecord.time_in) {
+          alert("Time OUT must be later than Time IN.");
+          return;
+        }
+
         const { data, error } = await supabase.from('attendance').update({
-          time_out: timeOut,
+          time_out: formattedTime,
           status: 'present'
         }).eq('id', attendanceRecord.id).select().single();
 
         if (error) throw error;
         setAttendanceRecord(data);
+        setTimeOut(formattedTime);
 
         // Notify admins
         await supabase.from('notifications').insert({
           type: 'clock_out',
-          payload: { user_name: userName, time: timeOut, date: date }
+          payload: { user_name: userName, time: formattedTime, date: date }
         });
 
         setToastMessage('Time OUT marked successfully!');
@@ -125,11 +118,27 @@ const EmployeeDashboard = () => {
     navigate('/login');
   };
 
+  const [liveTime, setLiveTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   if (loading) return <div>Loading...</div>;
 
-  const timeOptions = generateTimeOptions();
-  const canSelectIn = !attendanceRecord || !attendanceRecord.time_in;
-  const canSelectOut = attendanceRecord && attendanceRecord.time_in && !attendanceRecord.time_out;
+  const hasClockedIn = !!(attendanceRecord && attendanceRecord.time_in);
+  const hasClockedOut = !!(attendanceRecord && attendanceRecord.time_out);
+
+  const buttonText = !hasClockedIn 
+    ? 'Clock IN Now' 
+    : !hasClockedOut 
+      ? 'Clock OUT Now' 
+      : 'Attendance Completed';
+
+  const isButtonDisabled = hasClockedIn && hasClockedOut;
 
   return (
     <div className="page-container">
@@ -141,56 +150,53 @@ const EmployeeDashboard = () => {
       </div>
 
       <div className="neo-raised" style={{ marginBottom: '24px', padding: '24px' }}>
-        <h3 style={{ marginBottom: '16px' }}>Please mark your attendance</h3>
+        <h3 style={{ marginBottom: '16px', textAlign: 'center' }}>Please mark your attendance</h3>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Date</label>
-            <input 
-              type="date" 
-              className="neo-input" 
-              value={date}
-              disabled // Employees cannot change the date
-              style={{ opacity: 0.7, cursor: 'not-allowed' }}
-            />
+          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Date</span>
+            <span style={{ fontSize: '18px', fontWeight: '600' }}>
+              {new Date(date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
           </div>
 
-          <div className="form-row-2col">
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Time IN</label>
-              <select 
-                className="neo-input" 
-                value={timeIn} 
-                onChange={(e) => setTimeIn(e.target.value)}
-                disabled={!canSelectIn}
-                required={canSelectIn}
-              >
-                <option value="">Select Time</option>
-                {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', margin: '12px 0' }}>
+            {/* Live Digital Clock */}
+            <div className="neo-inset" style={{ padding: '16px 32px', textAlign: 'center', minWidth: '240px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Current Time</span>
+              <span style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--accent-color)', fontFamily: 'monospace' }}>
+                {liveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
             </div>
-            
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Time OUT</label>
-              <select 
-                className="neo-input" 
-                value={timeOut} 
-                onChange={(e) => setTimeOut(e.target.value)}
-                disabled={!canSelectOut}
-                required={canSelectOut}
-              >
-                <option value="">Select Time</option>
-                {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+
+            <div className="form-row-2col" style={{ width: '100%' }}>
+              {/* Time In Card */}
+              <div className="neo-raised" style={{ padding: '20px', textAlign: 'center', backgroundColor: hasClockedIn ? 'rgba(16, 185, 129, 0.05)' : 'transparent', flex: 1 }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px', display: 'block', marginBottom: '8px' }}>Clock IN</span>
+                <span style={{ fontSize: '24px', fontWeight: 'bold', color: hasClockedIn ? 'var(--success-color)' : 'var(--text-secondary)' }}>
+                  {hasClockedIn ? timeIn : '--:--'}
+                </span>
+                {hasClockedIn && <div style={{ fontSize: '12px', color: 'var(--success-color)', marginTop: '6px', fontWeight: '600' }}>✓ Recorded</div>}
+              </div>
+
+              {/* Time Out Card */}
+              <div className="neo-raised" style={{ padding: '20px', textAlign: 'center', backgroundColor: hasClockedOut ? 'rgba(16, 185, 129, 0.05)' : 'transparent', flex: 1 }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: '14px', display: 'block', marginBottom: '8px' }}>Clock OUT</span>
+                <span style={{ fontSize: '24px', fontWeight: 'bold', color: hasClockedOut ? 'var(--success-color)' : 'var(--text-secondary)' }}>
+                  {hasClockedOut ? timeOut : '--:--'}
+                </span>
+                {hasClockedOut && <div style={{ fontSize: '12px', color: 'var(--success-color)', marginTop: '6px', fontWeight: '600' }}>✓ Recorded</div>}
+              </div>
             </div>
           </div>
 
           <button 
             type="submit" 
             className="neo-button-primary" 
-            disabled={(!canSelectIn && !canSelectOut) || (!timeIn && !timeOut)}
+            disabled={isButtonDisabled}
+            style={{ padding: '14px', fontSize: '16px' }}
           >
-            Submit
+            {buttonText}
           </button>
         </form>
       </div>
