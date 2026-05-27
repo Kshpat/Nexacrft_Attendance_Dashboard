@@ -70,7 +70,7 @@ const AdminDashboard = () => {
 
     const { data: attData, error: attError } = await supabase
       .from('attendance')
-      .select('id, user_id, time_in, time_out, status')
+      .select('id, user_id, time_in, time_out, status, geofence_verified_in, geofence_verified_out')
       .eq('date', today);
 
     if (attError) console.error("Error fetching attendance:", attError);
@@ -83,7 +83,9 @@ const AdminDashboard = () => {
         role: u.role,
         status: att?.status || 'absent',
         timeIn: att?.time_in || '',
-        timeOut: att?.time_out || ''
+        timeOut: att?.time_out || '',
+        verifiedIn: att?.geofence_verified_in || false,
+        verifiedOut: att?.geofence_verified_out || false
       };
     });
 
@@ -245,8 +247,38 @@ const AdminDashboard = () => {
                 employees.map(emp => (
                   <tr key={emp.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                     <td style={{ padding: '12px' }}>{emp.name}</td>
-                    <td style={{ padding: '12px' }}>{emp.timeIn || '--:--'}</td>
-                    <td style={{ padding: '12px' }}>{emp.timeOut || '--:--'}</td>
+                    <td style={{ padding: '12px' }}>
+                      {emp.timeIn || '--:--'}
+                      {emp.timeIn && (
+                        <span style={{ 
+                          marginLeft: '8px', 
+                          fontSize: '10px', 
+                          padding: '2px 6px', 
+                          borderRadius: '8px',
+                          backgroundColor: emp.verifiedIn ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                          color: emp.verifiedIn ? '#10b981' : '#f59e0b',
+                          fontWeight: 'bold'
+                        }}>
+                          {emp.verifiedIn ? 'GPS' : '⚠️ GPS'}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      {emp.timeOut || '--:--'}
+                      {emp.timeOut && (
+                        <span style={{ 
+                          marginLeft: '8px', 
+                          fontSize: '10px', 
+                          padding: '2px 6px', 
+                          borderRadius: '8px',
+                          backgroundColor: emp.verifiedOut ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                          color: emp.verifiedOut ? '#10b981' : '#f59e0b',
+                          fontWeight: 'bold'
+                        }}>
+                          {emp.verifiedOut ? 'GPS' : '⚠️ GPS'}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: '12px' }}>
                       <span style={{ 
                         padding: '4px 8px', 

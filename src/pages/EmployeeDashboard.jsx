@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { Link, useNavigate } from 'react-router-dom';
 import NotificationToast from '../components/NotificationToast';
+import { OFFICE_LAT, OFFICE_LNG, ALLOWED_RADIUS_METERS, calculateDistance, getCurrentCoordinates } from '../utils/geofencing';
 
 const EmployeeDashboard = () => {
   const [session, setSession] = useState(null);
@@ -12,6 +13,7 @@ const EmployeeDashboard = () => {
   const [attendanceRecord, setAttendanceRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
+  const [verifyingLocation, setVerifyingLocation] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,6 +59,22 @@ const EmployeeDashboard = () => {
       return;
     }
 
+    setVerifyingLocation(true);
+    let coords = null;
+    let distance = null;
+    let verified = false;
+
+    try {
+      const pos = await getCurrentCoordinates();
+      coords = pos;
+      distance = calculateDistance(pos.latitude, pos.longitude, OFFICE_LAT, OFFICE_LNG);
+      verified = distance <= ALLOWED_RADIUS_METERS;
+    } catch (err) {
+      setVerifyingLocation(false);
+      alert(err.message);
+      return;
+    }
+
     const now = new Date();
     const formattedTime = now.toTimeString().split(' ')[0].substring(0, 5); // e.g. "14:35"
 
@@ -65,11 +83,16 @@ const EmployeeDashboard = () => {
       const isUpdatingOut = attendanceRecord && attendanceRecord.time_in && !attendanceRecord.time_out;
 
       if (isInsertingIn) {
+        const status = verified ? 'present' : 'partial';
+
         const { data, error } = await supabase.from('attendance').insert({
           user_id: session.user.id,
           date: date,
           time_in: formattedTime,
-          status: 'partial'
+          status: status,
+          latitude_in: coords.latitude,
+          longitude_in: coords.longitude,
+          geofence_verified_in: verified
         }).select().single();
         
         if (error) throw error;
@@ -79,20 +102,36 @@ const EmployeeDashboard = () => {
         // Notify admins
         await supabase.from('notifications').insert({
           type: 'clock_in',
-          payload: { user_name: userName, time: formattedTime, date: date }
+          payload: { 
+            user_name: userName, 
+            time: formattedTime, 
+            date: date,
+            geofence_verified: verified,
+            distance: Math.round(distance)
+          }
         });
 
-        setToastMessage('Time IN marked successfully!');
+        if (verified) {
+          setToastMessage('Clocked IN successfully! (Location Verified)');
+        } else {
+          setToastMessage(`Clocked IN outside office! Distance: ${Math.round(distance)}m`);
+        }
       } else if (isUpdatingOut) {
         // Rule 2: Time Out > Time In
         if (formattedTime <= attendanceRecord.time_in) {
           alert("Time OUT must be later than Time IN.");
+          setVerifyingLocation(false);
           return;
         }
 
+        const finalStatus = (attendanceRecord.geofence_verified_in && verified) ? 'present' : 'partial';
+
         const { data, error } = await supabase.from('attendance').update({
           time_out: formattedTime,
-          status: 'present'
+          status: finalStatus,
+          latitude_out: coords.latitude,
+          longitude_out: coords.longitude,
+          geofence_verified_out: verified
         }).eq('id', attendanceRecord.id).select().single();
 
         if (error) throw error;
@@ -102,14 +141,26 @@ const EmployeeDashboard = () => {
         // Notify admins
         await supabase.from('notifications').insert({
           type: 'clock_out',
-          payload: { user_name: userName, time: formattedTime, date: date }
+          payload: { 
+            user_name: userName, 
+            time: formattedTime, 
+            date: date,
+            geofence_verified: verified,
+            distance: Math.round(distance)
+          }
         });
 
-        setToastMessage('Time OUT marked successfully!');
+        if (verified) {
+          setToastMessage('Clocked OUT successfully! (Location Verified)');
+        } else {
+          setToastMessage(`Clocked OUT outside office! Distance: ${Math.round(distance)}m`);
+        }
       }
     } catch (error) {
       console.error('Error submitting attendance:', error);
       alert('Failed to mark attendance.');
+    } finally {
+      setVerifyingLocation(false);
     }
   };
 
@@ -144,6 +195,24 @@ const EmployeeDashboard = () => {
     <div className="page-container">
       {toastMessage && <NotificationToast message={toastMessage} type="success" onClose={() => setToastMessage('')} />}
       
+      {verifyingLocation && (
+        <div className="neo-modal-backdrop" style={{ zIndex: 3000 }}>
+          <div className="neo-raised neo-modal-content-narrow" style={{ textAlign: 'center', padding: '32px' }}>
+            <div style={{ 
+              width: '40px', 
+              height: '40px', 
+              border: '3px solid rgba(99, 102, 241, 0.2)', 
+              borderTop: '3px solid var(--accent-color)', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px' 
+            }}></div>
+            <h3 style={{ marginBottom: '8px' }}>GPS Verification</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Acquiring high-accuracy location data and calculating office proximity...</p>
+          </div>
+        </div>
+      )}
+
       <div className="header-row">
         <h2>Hey, {userName}</h2>
         <button onClick={handleLogout} className="neo-button" style={{ backgroundColor: 'transparent', border: '1px solid var(--text-secondary)' }}>Logout</button>
@@ -176,7 +245,20 @@ const EmployeeDashboard = () => {
                 <span style={{ fontSize: '24px', fontWeight: 'bold', color: hasClockedIn ? 'var(--success-color)' : 'var(--text-secondary)' }}>
                   {hasClockedIn ? timeIn : '--:--'}
                 </span>
-                {hasClockedIn && <div style={{ fontSize: '12px', color: 'var(--success-color)', marginTop: '6px', fontWeight: '600' }}>✓ Recorded</div>}
+                {hasClockedIn && (
+                  <div style={{ marginTop: '8px' }}>
+                    <span style={{ 
+                      fontSize: '11px', 
+                      padding: '3px 8px', 
+                      borderRadius: '12px',
+                      backgroundColor: attendanceRecord?.geofence_verified_in ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                      color: attendanceRecord?.geofence_verified_in ? '#10b981' : '#f59e0b',
+                      fontWeight: 'bold'
+                    }}>
+                      {attendanceRecord?.geofence_verified_in ? '📍 Verified' : '⚠️ Unverified'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Time Out Card */}
@@ -185,7 +267,20 @@ const EmployeeDashboard = () => {
                 <span style={{ fontSize: '24px', fontWeight: 'bold', color: hasClockedOut ? 'var(--success-color)' : 'var(--text-secondary)' }}>
                   {hasClockedOut ? timeOut : '--:--'}
                 </span>
-                {hasClockedOut && <div style={{ fontSize: '12px', color: 'var(--success-color)', marginTop: '6px', fontWeight: '600' }}>✓ Recorded</div>}
+                {hasClockedOut && (
+                  <div style={{ marginTop: '8px' }}>
+                    <span style={{ 
+                      fontSize: '11px', 
+                      padding: '3px 8px', 
+                      borderRadius: '12px',
+                      backgroundColor: attendanceRecord?.geofence_verified_out ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                      color: attendanceRecord?.geofence_verified_out ? '#10b981' : '#f59e0b',
+                      fontWeight: 'bold'
+                    }}>
+                      {attendanceRecord?.geofence_verified_out ? '📍 Verified' : '⚠️ Unverified'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

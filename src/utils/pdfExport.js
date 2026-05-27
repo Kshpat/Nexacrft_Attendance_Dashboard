@@ -80,20 +80,30 @@ export const exportStructuredPdf = async ({ employeeName, month, year, attendanc
   // Sort data by date
   const sortedData = [...attendanceData].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const tableBody = sortedData.map(d => [
-    d.date,
-    d.time_in ? d.time_in.substring(0, 5) : '--:--',
-    d.time_out ? d.time_out.substring(0, 5) : '--:--',
-    d.status.toUpperCase()
-  ]);
+  const tableBody = sortedData.map(d => {
+    let gpsStatus = '--';
+    if (d.time_in || d.time_out) {
+      const inStatus = d.time_in ? (d.geofence_verified_in ? 'IN: Verified' : 'IN: Unverified') : '';
+      const outStatus = d.time_out ? (d.geofence_verified_out ? 'OUT: Verified' : 'OUT: Unverified') : '';
+      gpsStatus = [inStatus, outStatus].filter(Boolean).join(' | ');
+    }
+
+    return [
+      d.date,
+      d.time_in ? d.time_in.substring(0, 5) : '--:--',
+      d.time_out ? d.time_out.substring(0, 5) : '--:--',
+      gpsStatus,
+      d.status.toUpperCase()
+    ];
+  });
 
   if (tableBody.length === 0) {
-    tableBody.push(['No data found for this period', '', '', '']);
+    tableBody.push(['No data found for this period', '', '', '', '']);
   }
 
   autoTable(pdf, {
     startY: currentY,
-    head: [['Date', 'Time IN', 'Time OUT', 'Status']],
+    head: [['Date', 'Time IN', 'Time OUT', 'GPS Status', 'Status']],
     body: tableBody,
     theme: 'striped',
     headStyles: { fillColor: [99, 102, 241] }, // Indigo
